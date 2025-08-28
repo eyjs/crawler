@@ -1,0 +1,20 @@
+{
+  "test_cases": [
+    {
+      "name": "네이버 메인 테스트",
+      "url": "https://www.naver.com/",
+      "prompt": "뉴스, 검색, 정보, 포털 사이트"
+    },
+    {
+      "name": "위키피디아 한국어 테스트",
+      "url": "https://ko.wikipedia.org/wiki/%EB%8C%80%ED%95%9C%EB%AF%BC%EA%B5%AD",
+      "prompt": "대한민국, 역사, 정보, 백과사전"
+    }
+  ],
+  "crawler_settings": {
+    "max_pages": 3,
+    "relevance_threshold": 0.5,
+    "request_delay": 1.0,
+    "timeout": 20
+  }
+}
