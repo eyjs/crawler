@@ -20,6 +20,7 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -27,6 +28,8 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -47,7 +50,6 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-cover/
 
 # Translations
 *.mo
@@ -70,7 +72,6 @@ instance/
 docs/_build/
 
 # PyBuilder
-.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -84,17 +85,21 @@ ipython_config.py
 .python-version
 
 # pipenv
-Pipfile.lock
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if have platform-specific dependencies, or dependencies
+#   are not locked, it may be sensible to ignore the Pipfile.lock.
+# Pipfile.lock
 
 # poetry
-poetry.lock
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   For more info, see https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file
+# poetry.lock
 
 # pdm
-.pdm.toml
-.pdm-python
-.pdm-build/
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+# pdm.lock
 
-# PEP 582
+# PEP 582; used by e.g. pyflow
 __pypackages__/
 
 # Celery stuff
@@ -131,30 +136,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# pytype static type analyzer
+# pytype static analyzer
 .pytype/
 
 # Cython debug symbols
 cython_debug/
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# Custom - LLM Crawler specific
-logs/
-*.log
-temp/
-cache/
-downloads/
-test_results/
-*.json.bak
-*.txt.bak
-
-# API Keys (중요!)
-.env.local
-.env.production
-api_keys.txt
-secrets.json
