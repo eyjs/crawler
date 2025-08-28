@@ -1,4 +1,4 @@
-# src/models/packet.py
+# src/models/packet.py (수정된 최종 버전)
 
 import uuid
 from dataclasses import dataclass, field
@@ -35,8 +35,14 @@ class Metadata:
 @dataclass
 class DataPacket:
     """백엔드 전송용 최종 데이터 패킷"""
-    packet_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    agent_id: str = "crawler-agent-01"
+
+    # --- 필드 순서가 수정되었습니다 ---
+    # 기본값이 없는 필드를 위로 이동
     source_info: SourceInfo
     crawled_content: CrawledContent
     metadata: Metadata
+
+    # 기본값이 있는 필드를 아래로 이동
+    packet_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = "crawler-agent-01"
+    # -----------------------------

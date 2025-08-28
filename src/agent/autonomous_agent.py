@@ -1,16 +1,17 @@
-# src/agent/autonomous_agent.py (수정된 버전)
+# src/agent/autonomous_agent.py (오류 수정된 최종 버전)
 
 import asyncio
 from collections import deque
 from urllib.parse import urlparse
 from loguru import logger
 import json
+import os
+from dataclasses import asdict
 
 from src.crawler.hybrid_extractor import AsyncStyleContentExtractor
 from src.llm import llm_client
 from config.settings import config
 from src.utils.link_filter import is_link_relevant_for_eval
-# --- 데이터 패킷 모델 임포트 ---
 from src.models.packet import DataPacket, SourceInfo, CrawledContent, Metadata
 
 class AutonomousAgent:
@@ -19,7 +20,6 @@ class AutonomousAgent:
         self.instruction_prompt = instruction_prompt
         self.base_domain = urlparse(start_url).netloc
 
-        # --- 소스 정보 객체 생성 ---
         self.source_info = SourceInfo(
             site_identifier=site_name or self.base_domain.replace('.', '_'),
             site_name=site_name or self.base_domain,
@@ -30,7 +30,7 @@ class AutonomousAgent:
         self.to_visit_queue = deque([start_url])
         self.visited_urls = set([start_url])
         self.url_score_cache = {}
-        self.crawled_data_packets = [] # <-- 최종 데이터 패킷을 저장할 리스트
+        self.crawled_data_packets = []
 
         logger.info(f"에이전트 초기화: {self.base_domain}")
         logger.info(f"설정된 목표: {self.instruction_prompt}")
@@ -39,7 +39,13 @@ class AutonomousAgent:
         """에이전트 실행"""
         page_count = 0
 
-        async with AsyncStyleContentExtractor(...) as extractor:
+        # --- 이 부분이 수정되었습니다 (Timeout 오류 해결) ---
+        async with AsyncStyleContentExtractor(
+            timeout=config.page_load_timeout,
+            delay=config.request_delay,
+            max_workers=config.max_concurrent_requests
+        ) as extractor:
+        # ------------------------------------------------
             while self.to_visit_queue and page_count < config.max_pages_per_session:
                 current_url = self.to_visit_queue.popleft()
                 page_count += 1
@@ -50,9 +56,7 @@ class AutonomousAgent:
                 if not page_data or not page_data['success'] or len(page_data.get('content', '')) < 300:
                     continue
 
-                # --- 콘텐츠 강화 및 패킷 생성 ---
                 await self.process_and_store_content(page_data, current_url)
-                # -----------------------------
 
                 await self._evaluate_and_enqueue_links(page_data.get('links', []))
 
@@ -72,7 +76,7 @@ class AutonomousAgent:
 
         crawled_content = CrawledContent(
             content_url=current_url,
-            title=page_data.get('title', current_url), # ToDo: title 추출 기능 추가 필요
+            title=page_data.get('title', "N/A"), # title 추출 기능 추가 필요
             extracted_text=content_text,
             summary=enriched_data['summary'],
             keywords=enriched_data['keywords']
@@ -81,29 +85,14 @@ class AutonomousAgent:
         packet = DataPacket(
             source_info=self.source_info,
             crawled_content=crawled_content,
-            metadata=Metadata(source_page_url=current_url) # ToDo: 더 정확한 source_page_url 필요
+            metadata=Metadata(source_page_url=current_url)
         )
 
         self.crawled_data_packets.append(packet)
         logger.success(f"  -> ✅ 데이터 패킷 생성 완료: {packet.packet_id}")
 
-        # 임시로 파일에 저장하여 확인 (나중에 백엔드 전송 로직으로 대체)
-        self.save_packet_to_file(packet)
-
-    def save_packet_to_file(self, packet: DataPacket):
-        """생성된 패킷을 JSON 파일로 저장 (테스트용)"""
-        import os
-        from dataclasses import asdict
-
-        output_dir = "crawled_results"
-        os.makedirs(output_dir, exist_ok=True)
-
-        file_path = os.path.join(output_dir, f"{packet.packet_id}.json")
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(asdict(packet), f, ensure_ascii=False, indent=2)
-
     async def _evaluate_and_enqueue_links(self, links: list):
-        # ... (기존 코드와 동일, 변경 없음)
+        """추출된 링크를 평가하고 큐에 추가합니다."""
         tasks = []
         for link in links:
             if urlparse(link['url']).netloc != self.base_domain: continue
@@ -113,14 +102,21 @@ class AutonomousAgent:
         await asyncio.gather(*tasks)
 
     async def process_link(self, link: dict):
-        # ... (기존 코드와 동일, 변경 없음)
+        """개별 링크를 처리하는 비동기 작업"""
         url = link['url']
         if url in self.visited_urls: return
+
         if url in self.url_score_cache:
             score = self.url_score_cache[url]
         else:
-            score = await llm_client.evaluate_relevance_score(...)
+            score = await llm_client.evaluate_relevance_score(
+                link_text=link['text'],
+                url=url,
+                context=link['context'],
+                target_goal=self.instruction_prompt
+            )
             self.url_score_cache[url] = score
+
         if score >= config.relevance_threshold:
             self.visited_urls.add(url)
             self.to_visit_queue.append(url)
