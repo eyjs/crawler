@@ -1,0 +1,36 @@
+{
+  "source_info": {
+    "site_identifier": "금융위원회 (FSC)",
+    "site_name": "금융위원회 (FSC)",
+    "base_url": "http://www.fsc.go.kr",
+    "instruction_prompt": "금융정책 수립, 제도 운영, 금융산업 규제"
+  },
+  "crawled_content": {
+    "content_url": "http://www.fsc.go.kr/no060101",
+    "title": "N/A",
+    "extracted_text": "홈으로 알림마당 해외금융기관 주요국가 금융감독기관 호주 주요국가 금융감독기관 공유하기 FaceBook X (구)트위터 NaverBlog URL 복사 close 인쇄하기 호주 브라질 캐나다 중국 프랑스 독일 홍콩 일본 말레이시아 싱가포르 영국 미국 베트남 호주 호주 건전성감독청 (Australian Prudential Regulation Authority, APRA) 호주의 은행, 보험, 연기금 등 금융회사의 재무건전성, 금융시장 안정성과 효율성 제고 및 경쟁촉진적인 진입ㆍ퇴출기준, 공정한 경쟁기반 마련을 목적으로 1998. 7.1. 금융제도 확대개편에 따라 설립 URL : http://www.apra.gov.au/ 호주 증권투자위원회 (Australian Securities and Investments Commission) 개요 호주의 시장중개기관 및 예금.보험.집합투자증권등 금융상품을 감독하고, 불공정영업행위 규제를 위하여 1998. 7.1. 금융제도 개편으로 설립 URL : http://www.asic.gov.au/ 호주 중앙은행 (Reserve Bank of Australia ,RBA) 호주 중앙은행으로 1959년 호주연방은행에서 분리되어 설립. 통화정책 및 경제 전반적인 금융안정성 감독 기능을 담당 (실물경제 및 금융소비자에 대한 최종대부자로서 금융시장에 긴급 유동성 지원, 지급결제시스템의 안정성과 효율성 제고) URL : http://www.rba.gov.au 콘텐츠 내용에 만족하셨나요? 매우만족 만족 보통 불만족 매우불만족 평가하기",
+    "summary": "호주 금융위원회는 1998년 금융제도 확대개편으로 설립된 기관으로, 재무건전성, 금융시장 안정성, 경쟁촉진을 목적으로 하며 호주의 중앙은행과 함께 금융산업을 감독하고 있다. 또한 호주 증권투자위원회는 시장중개기관 및 예금·보험·집합투자증권 등을 감독하고 불공정영업행위 규제를 위하여 설립된 기관으로 1998년 금융제도 개편 때 설립되었다. 호주는 국제적으로 경쟁력을 갖추기 위해 다양한 금융위원회를 두고 있으며, 이러한 기관들은 금융산업을 안정하고 경쟁촉진하기 위해 노력하고 있다.",
+    "keywords": [
+      "호주",
+      "금융위원회",
+      "APRA",
+      "ASIC",
+      "RBA",
+      "금융제도",
+      "금융산업",
+      "재무건전성",
+      "금융시장",
+      "경쟁촉진"
+    ],
+    "language": "ko",
+    "content_type": "web_page",
+    "relevance_score": 0.0
+  },
+  "metadata": {
+    "crawl_timestamp": "2025-08-28T16:01:21.654889Z",
+    "data_expiry_date": "2025-09-27T16:01:21.654897Z",
+    "source_page_url": "http://www.fsc.go.kr/no060101"
+  },
+  "packet_id": "69f7080d-3637-4291-89e0-61fa34b6a69a",
+  "agent_id": "crawler-agent-01"
+}

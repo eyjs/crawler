@@ -1,11 +1,9 @@
-# src/agent/autonomous_agent.py (오류 수정된 최종 버전)
+# src/agent/autonomous_agent.py (오류 수정 및 로그 레벨 조정된 최종 버전)
 
 import asyncio
 from collections import deque
 from urllib.parse import urlparse
 from loguru import logger
-import json
-import os
 from dataclasses import asdict
 
 from src.crawler.hybrid_extractor import AsyncStyleContentExtractor
@@ -33,7 +31,7 @@ class AutonomousAgent:
         self.crawled_data_packets = []
 
         logger.info(f"에이전트 초기화: {self.base_domain}")
-        logger.info(f"설정된 목표: {self.instruction_prompt}")
+        logger.debug(f"설정된 목표: {self.instruction_prompt}")
 
     async def run(self):
         """에이전트 실행"""
@@ -53,11 +51,15 @@ class AutonomousAgent:
                 logger.info(f"[{page_count}/{config.max_pages_per_session}] 크롤링 시도: {current_url}")
 
                 page_data = await extractor.fetch_page_content(current_url)
-                if not page_data or not page_data['success'] or len(page_data.get('content', '')) < 300:
+                if not page_data or not page_data['success']:
+                    logger.warning(f"페이지 로드 실패 또는 내용 없음: {current_url}")
+                    continue
+
+                if len(page_data.get('content', '')) < 300:
+                    logger.debug(f"콘텐츠 길이 미달 (300자 미만), 건너뜀: {current_url}")
                     continue
 
                 await self.process_and_store_content(page_data, current_url)
-
                 await self._evaluate_and_enqueue_links(page_data.get('links', []))
 
         logger.success(f"[{self.base_domain}] 크롤링 완료. 총 {len(self.crawled_data_packets)}개 데이터 패킷 생성.")
@@ -71,12 +73,12 @@ class AutonomousAgent:
         enriched_data = await llm_client.enrich_content(content_text, self.instruction_prompt)
 
         if not enriched_data or not enriched_data['summary']:
-            logger.warning("  -> 콘텐츠 강화 실패. 요약이 비어있습니다.")
+            logger.warning("  -> 콘텐츠 강화 실패 (요약 내용 없음). 패킷을 생성하지 않습니다.")
             return
 
         crawled_content = CrawledContent(
             content_url=current_url,
-            title=page_data.get('title', "N/A"), # title 추출 기능 추가 필요
+            title=page_data.get('title', "N/A"),
             extracted_text=content_text,
             summary=enriched_data['summary'],
             keywords=enriched_data['keywords']
@@ -89,7 +91,7 @@ class AutonomousAgent:
         )
 
         self.crawled_data_packets.append(packet)
-        logger.success(f"  -> ✅ 데이터 패킷 생성 완료: {packet.packet_id}")
+        logger.success(f"  -> ✅ 데이터 패킷 생성 성공: {packet.packet_id}")
 
     async def _evaluate_and_enqueue_links(self, links: list):
         """추출된 링크를 평가하고 큐에 추가합니다."""
@@ -97,7 +99,9 @@ class AutonomousAgent:
         for link in links:
             if urlparse(link['url']).netloc != self.base_domain: continue
             if link['url'] in self.visited_urls: continue
-            if not is_link_relevant_for_eval(link['text'], link['url']): continue
+            if not is_link_relevant_for_eval(link['text'], link['url']):
+                logger.trace(f"필터링됨 (API 호출 X): {link['text'][:30]}...")
+                continue
             tasks.append(self.process_link(link))
         await asyncio.gather(*tasks)
 
@@ -108,6 +112,7 @@ class AutonomousAgent:
 
         if url in self.url_score_cache:
             score = self.url_score_cache[url]
+            logger.debug(f"  -> 캐시 점수: {score:.2f} | {link['text'][:30]}...")
         else:
             score = await llm_client.evaluate_relevance_score(
                 link_text=link['text'],
@@ -116,6 +121,7 @@ class AutonomousAgent:
                 target_goal=self.instruction_prompt
             )
             self.url_score_cache[url] = score
+            logger.debug(f"  -> API 평가 점수: {score:.2f} | {link['text'][:30]}...")
 
         if score >= config.relevance_threshold:
             self.visited_urls.add(url)

@@ -1,0 +1,36 @@
+{
+  "source_info": {
+    "site_identifier": "금융위원회 (FSC)",
+    "site_name": "금융위원회 (FSC)",
+    "base_url": "http://www.fsc.go.kr",
+    "instruction_prompt": "금융정책 수립, 제도 운영, 금융산업 규제"
+  },
+  "crawled_content": {
+    "content_url": "http://www.fsc.go.kr/no060201",
+    "title": "N/A",
+    "extracted_text": "홈으로 알림마당 해외금융기관 주요국제금융기구 주요국제금융기구 공유하기 FaceBook X (구)트위터 NaverBlog URL 복사 close 인쇄하기 국제통화기금(IMF, International Monetary Fund) 통화정책의 국제협력, 국제무역의 균형 성장, 환율의 안정, 가맹국의 국제수지조정 지원목적으로 1945년 12월 27일 설립. 주요정책사항을 결정하는 총회 및 IMF 업무 운영을 담당하는 상무 이사회 등으로 구성 (한국 1955년 가입) URL : http://www.imf.org 세계은행(WB, World Bank) 제2차 세계대전 후 전후복구자금과 개도국에 대한 경제개발자금 지원 목적으로 1945년 설립된 IBRD(International Bank for Reconstruction & Development) 및 최빈국들에게 개발자금 지원목적 으로 1960년 설립된 IDA(International Development Association)로 구성(한국 1955년 IBRD가입) URL : http://www.worldbank.org 국제결제은행(BIS, Bank for International Settlements) 중앙은행간 협력 증진과 원활한 국제금융결제를 목적으로 1930년 1월 20일 설립. 주요정책사항을결정하는 총회, 운영을 담당하는 이사회 및 일반 업무를 관장하는 집행부로 구성(한국은행 1997년 가입)BIS 후원하에 은행감독당국간 국제협력 및 정보교환을 위해 격년으로 개최되는 국제은행감독자회의(International Conference of Banking Supervisors; ICBS)에 금융위원회/금감원은 매회차 참가해 옴 URL : http://www.bis.org 국제증권감독기구(IOSCO, International Organization of Securities Commissions) 효율적 시장규제방안, 국제증권거래에 관한 감독 및 기준설정 등 공통 관심사에 대한 논의 등을통한 각국 증권 감독자 협력증진을 목적으로 1983년 설립. 대표위원회, 집행위원회, 전문위원회, 신흥시장위원회, 지역위원회 등으로 구성 (금융위원회/금감원 1984년 정회원 가입) URL : http://www.iosco.org 국제보험감독자협의회(IAIS, International Association of Insurance Supervisors) 보험감독자 협력증진, 보험감독 및 규정의 국제적 기준 제정, 회원의 연수제공 등을 목표로 1994년 설립.집행위원회, 전문위원회, 신흥시장위원회, 예산위원회 등으로 구성 (금융위원회/금감원 1994년 정회원 가입) URL : http://www.iaisweb.org 콘텐츠 내용에 만족하셨나요? 매우만족 만족 보통 불만족 매우불만족 평가하기",
+    "summary": "IMF, WB, BIS, IOSCO, IAIS 등의 국제기구의 목적과 업무 운영을 설명합니다.",
+    "keywords": [
+      "금융정책",
+      "제도운영",
+      "국제금융기구",
+      "IMF",
+      "WB",
+      "BIS",
+      "IOSCO",
+      "IAIS",
+      "통화정책",
+      "국제협력"
+    ],
+    "language": "ko",
+    "content_type": "web_page",
+    "relevance_score": 0.0
+  },
+  "metadata": {
+    "crawl_timestamp": "2025-08-28T15:58:23.918892Z",
+    "data_expiry_date": "2025-09-27T15:58:23.918899Z",
+    "source_page_url": "http://www.fsc.go.kr/no060201"
+  },
+  "packet_id": "0a7aab43-69ec-4c34-8203-737bc9a86eb4",
+  "agent_id": "crawler-agent-01"
+}

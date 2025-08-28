@@ -1,0 +1,36 @@
+{
+  "source_info": {
+    "site_identifier": "한국은행 (BOK)",
+    "site_name": "한국은행 (BOK)",
+    "base_url": "http://www.bok.or.kr",
+    "instruction_prompt": "통화정책, 금융·경제통계, 보고서 제공"
+  },
+  "crawled_content": {
+    "content_url": "http://www.bok.or.kr/portal/singl/newsData/list.do?pageIndex=&targetDepth=3&menuNo=201252&syncMenuChekKey=4&searchCnd=1&searchKwd=&depth2=201157&depth3=201252&depth4=200097&date=&sdate=&edate=&sort=1&pageUnit=10",
+    "title": "N/A",
+    "extracted_text": "전체 제목 내용 저자 키워드 검색 초기화 메뉴 선택 검색 유형 및 세부유형 선택 유형 세부유형 전체보기 키워드 BOK 주요행사 총 0 건의 게시물이 있습니다. 전체 기간 1개월 3개월 6개월 1년 직접선택 최신순 조회순 10개 20개 30개 40개 50개 100개 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 담당부서 ... 조회수 0 등록일 1999.01.01 처음 목록 이전 목록 1 2 3 4 5 6 7 8 9 10 다음 목록 끝 목록 Loading . . . 유용한 정보가 되었나요? 매우만족 만족 보통 불만족 매우불만족 확인 내가 본 콘텐츠 내가 본 콘텐츠 이전 내가 본 콘텐츠 보기 다음 내가 본 콘텐츠 보기 페이지 위로 이동",
+    "summary": "이 문서는 통화정책, 금융·경제통계에 대한 보고서를 제공하는 초기화 메뉴입니다. 사용자는 검색 유형과 세부유형을 선택하여 총 0 건의 게시물 중 하나를 조회할 수 있습니다.",
+    "keywords": [
+      "통화정책",
+      "금융·경제통계",
+      "보고서",
+      "검색",
+      "초기화",
+      "메뉴",
+      "BOK",
+      "주요행사",
+      "조회",
+      "등록일"
+    ],
+    "language": "ko",
+    "content_type": "web_page",
+    "relevance_score": 0.0
+  },
+  "metadata": {
+    "crawl_timestamp": "2025-08-28T16:08:14.382943Z",
+    "data_expiry_date": "2025-09-27T16:08:14.382950Z",
+    "source_page_url": "http://www.bok.or.kr/portal/singl/newsData/list.do?pageIndex=&targetDepth=3&menuNo=201252&syncMenuChekKey=4&searchCnd=1&searchKwd=&depth2=201157&depth3=201252&depth4=200097&date=&sdate=&edate=&sort=1&pageUnit=10"
+  },
+  "packet_id": "5f44c721-3cc3-4244-ad6c-f8cca58ca320",
+  "agent_id": "crawler-agent-01"
+}
