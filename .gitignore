@@ -142,5 +142,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-.input/
-.output/
+# Custom ignore
+output/
+log/
