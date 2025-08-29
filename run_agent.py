@@ -8,12 +8,20 @@ from datetime import datetime
 from urllib.parse import urlparse
 import json
 import os
+from pathlib import Path # Added this line
 from dataclasses import asdict
+
+# Windows 콘솔 한글 출력 문제 해결
+if os.name == 'nt':  # Windows
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 # 프로젝트 루트 경로 추가
 sys.path.append('.')
 
 from src.agent.autonomous_agent import AutonomousAgent
+from src.utils.ollama_manager import OllamaManager, check_env_local
 
 def setup_loggers(log_dir: str):
     """기본 로거(콘솔, 시스템 파일)를 설정합니다."""
@@ -54,6 +62,40 @@ def find_and_validate_input_file():
     except Exception as e:
         logger.error(f"❌ 입력 파일('{file_path}')을 읽는 중 오류가 발생했습니다: {e}"); return None
 
+def check_ollama_service():
+    """로컬 LLM 모드 사용 시 Ollama 서비스를 확인하고 시작합니다."""
+    if not check_env_local():
+        return True  # 로컬 모드가 아니면 확인 불필요
+    
+    logger.info("🤖 로컬 LLM 모드 감지 - Ollama 서비스 확인 중...")
+    
+    ollama_manager = OllamaManager()
+    
+    # Ollama 설치 확인
+    if not ollama_manager.check_ollama_installed():
+        logger.error("❌ Ollama가 설치되어 있지 않습니다.")
+        logger.info("💡 해결 방법:")
+        logger.info("   1. setup.bat을 다시 실행하여 자동 설치")
+        logger.info("   2. 또는 https://ollama.ai/download 에서 수동 설치")
+        return False
+    
+    # Ollama 서비스 실행 확인 및 시작
+    if not ollama_manager.check_ollama_running():
+        logger.info("🚀 Ollama 서비스 시작 중...")
+        if not ollama_manager.start_ollama_service():
+            logger.error("❌ Ollama 서비스 시작에 실패했습니다.")
+            logger.info("💡 수동으로 터미널에서 'ollama serve' 명령을 실행해보세요.")
+            return False
+    
+    # 모델 확인
+    if not ollama_manager.check_model_installed():
+        logger.warning("⚠️ Llama3 모델이 설치되어 있지 않습니다.")
+        logger.info("💡 모델을 설치하려면 터미널에서 'ollama pull llama3' 명령을 실행하세요.")
+        return False
+    
+    logger.success("✅ Ollama/Llama3 환경 준비 완료!")
+    return True
+
 def save_results_to_file(domain: str, packets: list, date_str: str):
     if not packets:
         logger.warning(f"[{domain}] 저장할 데이터 패킷이 없습니다.")
@@ -74,16 +116,34 @@ def save_results_to_file(domain: str, packets: list, date_str: str):
 
 async def main():
     """자율 에이전트 실행 메인 함수"""
-
-    # --- 이 부분이 수정되었습니다 ---
-    # 스크립트 시작 시 날짜 폴더 경로를 먼저 정의합니다.
-    date_str = datetime.now().strftime("%Y-%m-%d")
-    log_dir = os.path.join("logs", date_str)
-    os.makedirs(log_dir, exist_ok=True)
-
-    # 정의된 경로를 사용하여 로거를 설정합니다.
-    setup_loggers(log_dir)
-    # -----------------------------
+    logger.info("🚀 LLM Crawler Agent 시작")
+    
+    try:
+        # 배포 환경 초기화 (배포 시에만)
+        if getattr(sys, 'frozen', False):  # exe 환경
+            from src.utils.deployment_utils import initialize_deployment_environment
+            path_manager = initialize_deployment_environment()
+        else:
+            # 개발 환경에서는 기본 폴더 생성
+            for directory in ['input', 'output', 'logs']:
+                Path(directory).mkdir(exist_ok=True)
+        
+        # 날짜별 로그 디렉토리 설정
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        log_dir = os.path.join("logs", date_str)
+        os.makedirs(log_dir, exist_ok=True)
+        setup_loggers(log_dir)
+    except Exception as e:
+        logger.error(f"❌ 초기화 중 오류가 발생했습니다: {e}")
+        input("Enter 키를 눌러 종료...")
+        return
+    
+    # 로컬 LLM 서비스 확인 (필요한 경우)
+    if not check_ollama_service():
+        logger.error("❌ 로컬 LLM 환경 준비에 실패했습니다.")
+        logger.info("💡 .env 파일에서 LLM_PROVIDER를 'gemini'로 변경하거나 Ollama를 설치해주세요.")
+        input("Enter 키를 눌러 종료...")
+        return
 
     validation_result = find_and_validate_input_file()
     if not validation_result:
@@ -124,5 +184,52 @@ async def main():
 
     logger.info("🎉 모든 작업이 완료되었습니다.")
 
+def check_dependencies():
+    """필수 의존성 확인"""
+    missing_packages = []
+    
+    try:
+        import pandas
+    except ImportError:
+        missing_packages.append("pandas")
+    
+    try:
+        import openpyxl
+    except ImportError:
+        missing_packages.append("openpyxl")
+    
+    try:
+        import aiohttp
+    except ImportError:
+        missing_packages.append("aiohttp")
+    
+    # 로컬 LLM 사용 시 ollama 패키지 확인
+    if check_env_local():
+        try:
+            import ollama
+        except ImportError:
+            missing_packages.append("ollama")
+    
+    if missing_packages:
+        logger.error(f"❌ 필수 패키지가 설치되어 있지 않습니다: {', '.join(missing_packages)}")
+        logger.info(f"💡 설치 명령: pip install {' '.join(missing_packages)}")
+        logger.info("💡 또는 setup.bat을 실행하여 환경을 재구성하세요.")
+        return False
+    
+    return True
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    # 의존성 확인
+    if not check_dependencies():
+        input("Enter 키를 눌러 종료...")
+        sys.exit(1)
+    
+    # 메인 실행
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n프로그램이 중단되었습니다.")
+    except Exception as e:
+        logger.error(f"치명적 오류: {e}")
+        input("Enter 키를 눌러 종료...")
+        sys.exit(1)

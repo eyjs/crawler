@@ -1,64 +1,213 @@
-# LLM 기반 지능형 크롤링 에이전트
+# 🚀 LLM Crawler Agent
 
-## 📖 프로젝트 개요
+지능형 웹 크롤링 에이전트 - 로컬 LLM(Llama3) 또는 Gemini API를 사용한 자동 웹 크롤링 시스템
 
-이 프로젝트는 사용자가 정의한 목표(`instruction prompt`)에 따라 웹사이트를 자율적으로 탐색하고, LLM(거대 언어 모델)을 활용하여 관련성 높은 콘텐츠만을 지능적으로 수집, 요약, 구조화하는 데이터 처리 에이전트입니다.
+## 📋 실행 흐름
 
-## ✨ 핵심 특징
-
-- **🤖 자율 탐색 에이전트**: 시작 URL과 목표만 주어지면, 관련성 높은 링크를 스스로 판단하여 탐색을 확장합니다.
-- **🧠 교체 가능한 LLM 엔진**: `.env` 설정 변경만으로 고성능 **Google Gemini API**와 비용 없는 **로컬 LLM(Ollama/Llama3)**을 자유롭게 전환할 수 있습니다.
-- **📄 지능형 콘텐츠 강화**: 수집된 웹페이지 본문에서 자동으로 **3줄 요약**과 **핵심 키워드**를 추출하여 데이터의 가치를 높입니다.
-- **💰 비용 최적화**: 불필요한 링크(로그인, 채용 등)를 사전에 필터링하고, 한번 평가한 URL은 캐싱하여 LLM API 호출을 최소화합니다.
-- **📦 표준 데이터 패킷**: 수집된 모든 데이터는 기획서에 명시된 표준 JSON 구조로 생성되어 `crawled_results` 폴더에 저장됩니다.
-- **📜 상세 로깅**: 모든 탐색 과정은 사이트별 개별 로그 파일(`logs` 폴더)에 상세히 기록되어 추적이 용이합니다.
-
-## 🚀 빠른 시작 가이드 (Quick Start)
-
-이 프로젝트를 처음 실행하는 경우, 아래 단계를 순서대로 따라주세요.
-
-### 1. 사전 요구사항
-
-- **Python 3.9 이상**
-- **Ollama (로컬 LLM 사용 시)**: 로컬 LLM(`LLM_PROVIDER="local"`)을 사용하려면 [Ollama](https://ollama.com)가 설치되어 있고, 터미널에서 `ollama run llama3` 명령이 한 번 이상 실행된 상태여야 합니다.
-
-### 2. 프로젝트 클론
-
+### 🎯 **통합 실행 (권장)**
 ```bash
-git clone [https://github.com/eyjs/crawler.git](https://github.com/eyjs/crawler.git)
-cd crawler
+# 한 번에 모든 것을 처리하는 마스터 스크립트
+start_crawler.bat
 ```
 
-### 3. 환경번수 설정
+### 🔧 **단계별 실행**
 
+#### 1️⃣ **환경 구성** (처음 한 번만)
 ```bash
-# Windows
-copy .env.sample .env
+# 옵션 A: PowerShell 통합 설치 (관리자 권한 필요)
+install_full.ps1
 
-# Linux / Mac
-cp .env.sample .env
-```
-
-### 4. 필수 패키지 설치
-
-```bash
-# Windows
-# setup.bat을 실행하면 가상환경 생성부터 패키지 설치까지 자동으로 진행됩니다.
+# 옵션 B: 기본 환경 구성
 setup.bat
-
-# Linux / Mac (수동 설치)
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
-### 5. 에이전트 실행
-
+#### 2️⃣ **시스템 점검**
 ```bash
-# 가상환경 활성화 (setup.bat을 사용하지 않은 경우)
-# Windows: .venv\Scripts\activate
-# Linux/Mac: source .venv/bin/activate
+# 가상환경 활성화
+.venv\Scripts\activate.bat
 
-# 에이전트 실행
+# 시스템 준비 상태 점검
+python system_ready_check.py
+```
+
+#### 3️⃣ **크롤러 실행**
+```bash
 python run_agent.py
 ```
+
+## 📁 프로젝트 구조
+
+```
+crawler/
+├── 🎮 실행 스크립트
+│   ├── start_crawler.bat          # 통합 실행 스크립트 (권장)
+│   ├── install_full.ps1           # PowerShell 통합 설치
+│   ├── setup.bat                  # 기본 환경 구성
+│   └── run_crawler.bat           # 크롤러만 실행
+│
+├── 🛠️ 메인 프로그램
+│   ├── run_agent.py               # 크롤러 메인 실행 파일
+│   ├── system_ready_check.py      # 시스템 점검 도구
+│   └── create_sample.py           # 샘플 파일 생성
+│
+├── 📂 소스 코드
+│   ├── src/
+│   │   ├── agent/                 # 크롤링 에이전트
+│   │   ├── llm/                   # LLM 클라이언트
+│   │   ├── crawler/               # 웹 크롤링 엔진
+│   │   ├── models/                # 데이터 모델
+│   │   └── utils/                 # 유틸리티
+│   │       ├── deployment_utils.py # 배포 관리
+│   │       └── ollama_manager.py   # Ollama 관리
+│   │
+├── 📄 설정 파일
+│   ├── .env                       # 환경 변수 (setup.bat으로 생성)
+│   ├── .env.sample               # 환경 변수 템플릿
+│   ├── requirements.txt          # Python 패키지 목록
+│   └── config/                   # 설정 파일들
+│
+├── 📁 작업 폴더 (자동 생성)
+│   ├── input/                    # 크롤링 대상 Excel 파일
+│   ├── output/                   # 크롤링 결과 JSON 파일
+│   └── logs/                     # 실행 로그 파일
+│
+└── 🏗️ 배포 관련
+    ├── build_exe.py              # exe 빌드 스크립트
+    ├── build.bat                 # Windows 빌드
+    └── deployment/               # 배포 패키지 (빌드 후 생성)
+```
+
+## ⚙️ 설정 방법
+
+### LLM 선택
+
+#### 🤖 **로컬 LLM 사용** (무료, 추천)
+```env
+LLM_PROVIDER="local"
+LOCAL_LLM_MODEL="llama3"
+```
+- 장점: 무료, 인터넷 불필요, 개인정보 보안
+- 단점: 초기 다운로드 용량 큼 (수GB), 더 느림
+
+#### 🌐 **Gemini API 사용** (유료)
+```env
+LLM_PROVIDER="gemini"
+GEMINI_API_KEY="your-api-key-here"
+```
+- 장점: 빠른 응답, 높은 정확도
+- 단점: API 요금 발생, 인터넷 필요
+
+## 📄 입력 파일 형식
+
+`input/` 폴더에 다음 형식의 Excel 파일(.xlsx)을 넣어주세요:
+
+| 기관/단체/회사 | 주요 내용 | 웹사이트 주소 |
+|---------------|----------|-------------|
+| 네이버 | 회사 소개 및 주요 서비스 | https://www.naver.com/about |
+| 카카오 | 기업 정보 및 사업 분야 | https://www.kakaocorp.com/page/ |
+
+## 📊 결과 확인
+
+### 크롤링 결과
+- **위치**: `output/날짜/도메인명/`
+- **형식**: JSON 파일
+- **내용**: 추출된 텍스트, 요약, 키워드
+
+### 실행 로그
+- **위치**: `logs/날짜/`
+- **파일**: 
+  - `system.log`: 전체 시스템 로그
+  - `도메인명.log`: 사이트별 상세 로그
+
+## 🔧 시스템 요구사항
+
+### 기본 요구사항
+- **OS**: Windows 10/11
+- **RAM**: 최소 8GB (로컬 LLM 사용 시 16GB 권장)
+- **저장공간**: 10GB 이상 여유 공간
+- **네트워크**: 인터넷 연결 (모델 다운로드, 웹 크롤링용)
+
+### 소프트웨어
+- **Python**: 3.8 이상
+- **Git**: 최신 버전 (소스 코드 다운로드용)
+
+## 🚨 문제 해결
+
+### 한글 깨짐 현상
+- **해결책**: 제공된 실행 스크립트 사용 (`start_crawler.bat`)
+- 모든 스크립트에 UTF-8 인코딩 설정 포함
+
+### Ollama 설치 문제
+```bash
+# 수동 설치
+# 1. https://ollama.ai/download 방문
+# 2. Windows용 설치파일 다운로드
+# 3. 설치 후 터미널에서 실행:
+ollama pull llama3
+```
+
+### 권한 관련 오류
+- **Windows**: 관리자 권한으로 실행
+- **파일 접근**: 바이러스 백신 예외 처리 추가
+
+### 네트워크 오류
+- 방화벽 설정 확인
+- 프록시 환경에서는 추가 설정 필요
+
+## 📈 성능 최적화
+
+### 로컬 LLM 성능 향상
+- **GPU 사용**: NVIDIA GPU 있을 시 CUDA 가속
+- **메모리**: 16GB 이상 RAM 권장
+- **SSD**: 빠른 저장장치 사용
+
+### 크롤링 성능 조정
+```env
+# .env 파일에서 설정 가능
+MAX_PAGES_PER_SESSION=20     # 사이트별 최대 페이지 수
+RELEVANCE_THRESHOLD=0.7      # 관련성 임계값
+REQUEST_DELAY=1.5           # 요청 간 대기시간(초)
+```
+
+## 🔐 보안 고려사항
+
+### API 키 보안
+- `.env` 파일은 절대 공유하지 마세요
+- Git에 커밋하지 마세요 (`.gitignore`에 포함됨)
+
+### 크롤링 윤리
+- 대상 사이트의 이용약관 준수
+- robots.txt 파일 존중
+- 적절한 요청 간격 유지
+
+## 📞 지원 및 문의
+
+### 로그 파일 위치
+- `logs/날짜/system.log`: 전체 시스템 로그
+- `logs/날짜/도메인.log`: 사이트별 로그
+
+### 자주 발생하는 문제
+1. **가상환경 오류**: `setup.bat` 재실행
+2. **모델 다운로드 느림**: 네트워크 상태 확인
+3. **크롤링 실패**: 대상 사이트 접근성 확인
+
+---
+
+## 🏃‍♂️ 빠른 시작
+
+1. **프로젝트 다운로드**
+   ```bash
+   git clone [repository-url]
+   cd crawler
+   ```
+
+2. **통합 실행**
+   ```bash
+   start_crawler.bat
+   ```
+
+3. **결과 확인**
+   - `output/` 폴더에서 크롤링 결과 확인
+   - `logs/` 폴더에서 실행 로그 확인
+
+🎉 **이제 지능형 웹 크롤링을 시작할 준비가 완료되었습니다!**

@@ -1,4 +1,9 @@
-# integration_test.py (수정된 최종 버전)
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+SystemReadyCheck.py
+LLM Crawler Agent 시스템 준비 상태 점검 도구
+"""
 
 import asyncio
 import os
@@ -6,6 +11,8 @@ import sys
 from loguru import logger
 import requests
 import pandas as pd
+
+
 
 # 프로젝트 루트 경로 추가
 sys.path.append('.')
@@ -79,10 +86,8 @@ class SystemHealthCheck:
 
     def check_directories(self):
         try:
-            os.makedirs("logs", exist_ok=True)
-            os.makedirs("crawled_results", exist_ok=True)
-            os.makedirs("input", exist_ok=True)
-            self.record_result("필수 디렉토리", True, "'logs', 'crawled_results', 'input' 폴더를 사용 가능합니다.")
+            os.makedirs("output", exist_ok=True)
+            self.record_result("필수 디렉토리", True, "'logs', 'output', 'input' 폴더를 사용 가능합니다.")
         except OSError as e:
             self.record_result("필수 디렉토리", False, f"디렉토리 생성 권한 오류: {e}")
 

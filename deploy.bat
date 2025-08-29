@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 > nul
 setlocal
 
 :: --- 배치 파일 창 제목 설정 ---
