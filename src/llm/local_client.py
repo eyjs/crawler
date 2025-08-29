@@ -1,5 +1,6 @@
 # src/llm/local_client.py
 
+import asyncio
 import ollama
 import re
 import json
@@ -65,3 +66,33 @@ class LocalLlmClient(BaseLlmClient):
         except Exception as e:
             logger.error(f"로컬 LLM 자기 교정 노트 생성 실패: {e}")
             return "피드백 생성 중 오류가 발생했습니다."
+
+    async def evaluate_links_batch(self, links: List[Dict[str, str]], target_goal: str, strategic_notes: str) -> List[Dict[str, Any]]:
+        """주어진 링크 목록을 일괄적으로 평가하여 각 링크에 대한 점수를 반환합니다."""
+        tasks = []
+        for link in links:
+            task = self.evaluate_relevance_score(
+                link_text=link.get('text', ''),
+                url=link.get('url', ''),
+                context="",
+                target_goal=target_goal,
+                strategic_notes=strategic_notes
+            )
+            tasks.append(task)
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        scored_links = []
+        for link, result in zip(links, results):
+            score = 0.0
+            if isinstance(result, Exception):
+                logger.error(f"링크 평가 중 예외 발생: {link.get('url')} | {result}")
+            else:
+                score = result
+            
+            scored_links.append({
+                "url": link.get('url'),
+                "text": link.get('text'),
+                "score": score
+            })
+        return scored_links
