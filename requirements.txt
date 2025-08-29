@@ -6,9 +6,9 @@ langchain-google-genai==1.0.10
 
 # 웹 크롤링 패키지
 aiohttp==3.9.5
+aiodns==3.2.0
+brotlipy==0.7.0
 beautifulsoup4==4.12.3
-lxml==5.3.0
-requests==2.32.5
 
 # 문서 처리 패키지
 PyPDF2==3.0.1
