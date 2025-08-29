@@ -127,6 +127,7 @@ class AutonomousAgent:
             return
 
         if len(page_data.get('content', '')) < 300 and not page_data.get('attachments'):
+            logger.debug(f"콘텐츠 및 첨부파일 없음, 건너뜀: {url}")
             return
 
         await self.process_and_store_content(page_data, page_data.get('url', url))
@@ -138,6 +139,7 @@ class AutonomousAgent:
         analysis_result = await analysis_llm.analyze_content(analysis_input, self.instruction_prompt)
 
         if not analysis_result or (not analysis_result.get('summary') and not page_data.get('attachments')):
+            logger.warning("  -> 콘텐츠 강화 실패. 패킷을 생성하지 않습니다.")
             return
 
         crawled_content = CrawledContent(
@@ -162,39 +164,25 @@ class AutonomousAgent:
             link for link in links
             if urlparse(link['url']).netloc == self.base_domain and
                link['url'] not in self.visited_urls and
+               link['url'] not in self.url_score_cache and
                is_link_relevant_for_eval(link['text'], link['url'])
         ]
-
         if not valid_links_to_eval:
             return
 
-        tasks = []
-        for link in valid_links_to_eval:
-            tasks.append(self.process_link(link))
+        logger.debug(f"  -> [라우팅 LLM] 링크 {len(valid_links_to_eval)}개 일괄 평가 시작...")
+        scored_links = await routing_llm.evaluate_links_batch(
+            valid_links_to_eval, self.instruction_prompt, self.strategic_notes
+        )
 
-        await asyncio.gather(*tasks)
+        for link in scored_links:
+            url, score = link.get('url'), link.get('score', 0.0)
+            if not url: continue
 
-    async def process_link(self, link: dict):
-        url = link['url']
-        if url in self.visited_urls: return
-
-        # 캐시 확인
-        if url in self.url_score_cache:
-            score = self.url_score_cache[url]
-            logger.debug(f"  -> 캐시 점수: {score:.2f} | {link['text'][:30]}...")
-        else:
-            logger.debug(f"  -> [라우팅 LLM] 링크 개별 평가 시작: {url}")
-            score = await routing_llm.evaluate_relevance_score(
-                link_text=link['text'],
-                url=url,
-                context=link['context'],
-                target_goal=self.instruction_prompt,
-                strategic_notes=self.strategic_notes
-            )
             self.url_score_cache[url] = score
             logger.trace(f"  -> [라우팅 LLM] 평가 점수: {score:.2f} | {link.get('text', '')[:30]}...")
 
-        if score >= config.relevance_threshold and url not in self.visited_urls:
-            self.visited_urls.add(url)
-            self.to_visit_queue.append(url)
-            logger.info(f"  -> ⭐ 큐 추가 ({score:.2f}): {url}")
+            if score >= config.relevance_threshold and url not in self.visited_urls:
+                self.visited_urls.add(url)
+                self.to_visit_queue.append(url)
+                logger.info(f"  -> ⭐ 큐 추가 ({score:.2f}): {url}")
