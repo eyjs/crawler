@@ -1,4 +1,4 @@
-# run_agent.py (로그 경로 오류를 수정한 최종 버전)
+# run_agent.py
 
 import asyncio
 import pandas as pd
@@ -8,32 +8,17 @@ from datetime import datetime
 from urllib.parse import urlparse
 import json
 import os
-from pathlib import Path # Added this line
 from dataclasses import asdict
 
-# Windows 콘솔 한글 출력 문제 해결
-if os.name == 'nt':  # Windows
-    import codecs
-    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
-
-# 프로젝트 루트 경로 추가
 sys.path.append('.')
 
 from src.agent.autonomous_agent import AutonomousAgent
-from src.utils.ollama_manager import OllamaManager, check_env_local
+from src.llm import analysis_llm
 
 def setup_loggers(log_dir: str):
-    """기본 로거(콘솔, 시스템 파일)를 설정합니다."""
     logger.remove()
-    # 콘솔에는 INFO 레벨 이상의 로그만 출력
     logger.add(sys.stderr, level="INFO")
-
-    # --- 이 부분이 수정되었습니다 ---
-    # 이제 system.log도 날짜별 폴더 안에 생성됩니다.
     system_log_path = os.path.join(log_dir, "system.log")
-    # -----------------------------
-
     logger.add(system_log_path, level="DEBUG", rotation="10 MB", retention=5,
                format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {process.id} | {name}:{function}:{line} - {message}",
                encoding='utf-8', enqueue=True)
@@ -62,88 +47,57 @@ def find_and_validate_input_file():
     except Exception as e:
         logger.error(f"❌ 입력 파일('{file_path}')을 읽는 중 오류가 발생했습니다: {e}"); return None
 
-def check_ollama_service():
-    """로컬 LLM 모드 사용 시 Ollama 서비스를 확인하고 시작합니다."""
-    if not check_env_local():
-        return True  # 로컬 모드가 아니면 확인 불필요
-    
-    logger.info("🤖 로컬 LLM 모드 감지 - Ollama 서비스 확인 중...")
-    
-    ollama_manager = OllamaManager()
-    
-    # Ollama 설치 확인
-    if not ollama_manager.check_ollama_installed():
-        logger.error("❌ Ollama가 설치되어 있지 않습니다.")
-        logger.info("💡 해결 방법:")
-        logger.info("   1. setup.bat을 다시 실행하여 자동 설치")
-        logger.info("   2. 또는 https://ollama.ai/download 에서 수동 설치")
-        return False
-    
-    # Ollama 서비스 실행 확인 및 시작
-    if not ollama_manager.check_ollama_running():
-        logger.info("🚀 Ollama 서비스 시작 중...")
-        if not ollama_manager.start_ollama_service():
-            logger.error("❌ Ollama 서비스 시작에 실패했습니다.")
-            logger.info("💡 수동으로 터미널에서 'ollama serve' 명령을 실행해보세요.")
-            return False
-    
-    # 모델 확인
-    if not ollama_manager.check_model_installed():
-        logger.warning("⚠️ Llama3 모델이 설치되어 있지 않습니다.")
-        logger.info("💡 모델을 설치하려면 터미널에서 'ollama pull llama3' 명령을 실행하세요.")
-        return False
-    
-    logger.success("✅ Ollama/Llama3 환경 준비 완료!")
-    return True
-
 def save_results_to_file(domain: str, packets: list, date_str: str):
     if not packets:
         logger.warning(f"[{domain}] 저장할 데이터 패킷이 없습니다.")
         return
-    site_output_dir = os.path.join("output", date_str, domain)
-    os.makedirs(site_output_dir, exist_ok=True)
+    site_metadata_dir = os.path.join("output", date_str, domain, "metadata")
+    os.makedirs(site_metadata_dir, exist_ok=True)
     saved_count = 0
     for packet in packets:
-        file_path = os.path.join(site_output_dir, f"{packet.packet_id}.json")
+        file_path = os.path.join(site_metadata_dir, f"{packet.packet_id}.json")
         packet_as_dict = asdict(packet)
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(packet_as_dict, f, ensure_ascii=False, indent=2)
             saved_count += 1
         except Exception as e:
-            logger.error(f"💾 개별 패킷 파일 저장 실패: {file_path} | 오류: {e}")
-    logger.success(f"💾 최종 결과 저장 완료: {site_output_dir} ({saved_count}/{len(packets)}개 패킷)")
+            logger.error(f"💾 메타데이터 파일 저장 실패: {file_path} | 오류: {e}")
+    logger.success(f"💾 최종 결과 저장 완료: {os.path.dirname(site_metadata_dir)} ({saved_count}/{len(packets)}개 패킷)")
+
+async def update_and_save_strategy(domain: str, packets: list, instruction_prompt: str, site_name: str):
+    """크롤링 결과를 바탕으로 전략 노트를 업데이트하고 저장합니다."""
+    strategy_file_path = os.path.join("states", f"{domain}_strategy.md")
+    previous_critique = ""
+    if os.path.exists(strategy_file_path):
+        with open(strategy_file_path, 'r', encoding='utf-8') as f:
+            previous_critique = f.read()
+
+    if not packets:
+        logger.warning(f"[{domain}] 수집된 데이터가 없어 전략 노트를 업데이트할 수 없습니다.")
+        return
+
+    summaries_text = "\n\n".join(
+        [f"- Title: {p.crawled_content.title}\n- Summary: {p.crawled_content.summary}" for p in packets]
+    )
+
+    logger.info(f"[{domain}] [분석 LLM]에게 학습을 요청하여 전략 노트를 고도화합니다...")
+    updated_strategy = await analysis_llm.update_critique(
+        previous_critique=previous_critique,
+        crawled_summaries=summaries_text,
+        instruction_prompt=instruction_prompt,
+        site_name=site_name
+    )
+
+    with open(strategy_file_path, 'w', encoding='utf-8') as f:
+        f.write(updated_strategy)
+    logger.success(f"💡 전략 노트 업데이트 완료: {strategy_file_path}")
 
 async def main():
-    """자율 에이전트 실행 메인 함수"""
-    logger.info("🚀 LLM Crawler Agent 시작")
-    
-    try:
-        # 배포 환경 초기화 (배포 시에만)
-        if getattr(sys, 'frozen', False):  # exe 환경
-            from src.utils.deployment_utils import initialize_deployment_environment
-            path_manager = initialize_deployment_environment()
-        else:
-            # 개발 환경에서는 기본 폴더 생성
-            for directory in ['input', 'output', 'logs']:
-                Path(directory).mkdir(exist_ok=True)
-        
-        # 날짜별 로그 디렉토리 설정
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        log_dir = os.path.join("logs", date_str)
-        os.makedirs(log_dir, exist_ok=True)
-        setup_loggers(log_dir)
-    except Exception as e:
-        logger.error(f"❌ 초기화 중 오류가 발생했습니다: {e}")
-        input("Enter 키를 눌러 종료...")
-        return
-    
-    # 로컬 LLM 서비스 확인 (필요한 경우)
-    if not check_ollama_service():
-        logger.error("❌ 로컬 LLM 환경 준비에 실패했습니다.")
-        logger.info("💡 .env 파일에서 LLM_PROVIDER를 'gemini'로 변경하거나 Ollama를 설치해주세요.")
-        input("Enter 키를 눌러 종료...")
-        return
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    log_dir = os.path.join("logs", date_str)
+    os.makedirs(log_dir, exist_ok=True)
+    setup_loggers(log_dir)
 
     validation_result = find_and_validate_input_file()
     if not validation_result:
@@ -163,9 +117,7 @@ async def main():
 
         domain = urlparse(site_url).netloc
 
-        # 사이트별 로그 파일 경로 설정
         log_file_path = os.path.join(log_dir, f"{domain}.log")
-
         log_sink_id = logger.add(log_file_path, level="INFO",
                                  format="{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {message}",
                                  encoding='utf-8', enqueue=True)
@@ -176,6 +128,7 @@ async def main():
         crawled_packets = await agent.run()
 
         save_results_to_file(domain, crawled_packets, date_str)
+        await update_and_save_strategy(domain, crawled_packets, prompt, site_name)
 
         logger.remove(log_sink_id)
 
@@ -184,52 +137,5 @@ async def main():
 
     logger.info("🎉 모든 작업이 완료되었습니다.")
 
-def check_dependencies():
-    """필수 의존성 확인"""
-    missing_packages = []
-    
-    try:
-        import pandas
-    except ImportError:
-        missing_packages.append("pandas")
-    
-    try:
-        import openpyxl
-    except ImportError:
-        missing_packages.append("openpyxl")
-    
-    try:
-        import aiohttp
-    except ImportError:
-        missing_packages.append("aiohttp")
-    
-    # 로컬 LLM 사용 시 ollama 패키지 확인
-    if check_env_local():
-        try:
-            import ollama
-        except ImportError:
-            missing_packages.append("ollama")
-    
-    if missing_packages:
-        logger.error(f"❌ 필수 패키지가 설치되어 있지 않습니다: {', '.join(missing_packages)}")
-        logger.info(f"💡 설치 명령: pip install {' '.join(missing_packages)}")
-        logger.info("💡 또는 setup.bat을 실행하여 환경을 재구성하세요.")
-        return False
-    
-    return True
-
 if __name__ == "__main__":
-    # 의존성 확인
-    if not check_dependencies():
-        input("Enter 키를 눌러 종료...")
-        sys.exit(1)
-    
-    # 메인 실행
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n프로그램이 중단되었습니다.")
-    except Exception as e:
-        logger.error(f"치명적 오류: {e}")
-        input("Enter 키를 눌러 종료...")
-        sys.exit(1)
+    asyncio.run(main())

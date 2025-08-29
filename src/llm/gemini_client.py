@@ -24,47 +24,52 @@ class GeminiClient(BaseLlmClient):
         logger.info(f"✅ Gemini 클라이언트가 초기화되었습니다 (모델: {self.model_name})")
 
     def _generate_sync(self, prompt: str):
-        """동기식 API 호출을 위한 내부 헬퍼 함수"""
         return self.model.generate_content(prompt, generation_config=self.generation_config)
 
-    async def evaluate_links_batch(self, links: List[Dict[str, str]], target_goal: str) -> List[Dict[str, Any]]:
-        """여러 링크를 한 번에 평가하여 각 링크에 'score'를 추가한 리스트를 반환합니다."""
-        # 링크 리스트를 JSON 문자열로 변환
-        links_json_str = json.dumps(links, ensure_ascii=False, indent=2)
-
-        # 설정 파일에서 일괄 처리용 프롬프트 템플릿을 가져와 사용
-        prompt = config.gemini_batch_link_eval_prompt.format(
+    async def evaluate_relevance_score(self, link_text: str, url: str, context: str, target_goal: str, strategic_notes: str) -> float:
+        prompt = config.gemini_link_eval_prompt.format(
             target_goal=target_goal,
-            links_json_str=links_json_str
+            strategic_notes=strategic_notes or "No specific strategies yet.",
+            link_text=link_text,
+            url=url,
+            context=context[:200]
         )
-
         try:
-            # --- 실제 LLM 호출 로직 ---
             response = await asyncio.to_thread(self._generate_sync, prompt)
-            response_text = response.text.strip().replace("```json", "").replace("```", "")
-            scored_links = json.loads(response_text)
-            # --------------------------
-            return scored_links
+            score_text = response.text.strip()
+            numbers = re.findall(r'\d+\.?\d*', score_text)
+            if numbers:
+                return max(0.0, min(1.0, float(numbers[0])))
+            logger.warning(f"Gemini 링크 점수 파싱 실패: {score_text}")
+            return 0.0
         except Exception as e:
-            logger.error(f"Gemini 링크 일괄 평가 실패: {e}")
-            # 실패 시, 원본 링크 리스트에 score=0.0을 추가하여 반환
-            return [dict(link, score=0.0) for link in links]
+            logger.error(f"Gemini 링크 평가 실패: {url} | {e}")
+            return 0.0
 
     async def analyze_content(self, content: str, instruction_prompt: str) -> Dict[str, Any]:
-        """하나의 콘텐츠에서 요약, 키워드, 최종 점수를 한 번에 추출합니다."""
-        # 설정 파일에서 통합 분석용 프롬프트 템플릿을 가져와 사용
         prompt = config.gemini_combined_analysis_prompt.format(
             instruction_prompt=instruction_prompt,
-            content=content[:4000]
+            content=content[:8000]
         )
-
         try:
-            # --- 실제 LLM 호출 로직 ---
             response = await asyncio.to_thread(self._generate_sync, prompt)
             response_text = response.text.strip().replace("```json", "").replace("```", "")
             analysis_result = json.loads(response_text)
-            # --------------------------
             return analysis_result
         except Exception as e:
             logger.error(f"Gemini 콘텐츠 통합 분석 실패: {e}")
             return {"summary": "", "keywords": [], "relevance_score": 0.0}
+
+    async def update_critique(self, previous_critique: str, crawled_summaries: str, instruction_prompt: str, site_name: str) -> str:
+        prompt = config.gemini_critique_update_prompt.format(
+            site_name=site_name,
+            instruction_prompt=instruction_prompt,
+            previous_critique=previous_critique or "This is the first crawl for this site. No previous notes.",
+            crawled_summaries=crawled_summaries[:8000]
+        )
+        try:
+            response = await asyncio.to_thread(self._generate_sync, prompt)
+            return response.text.strip()
+        except Exception as e:
+            logger.error(f"Gemini 자기 교정 노트 생성 실패: {e}")
+            return "피드백 생성 중 오류가 발생했습니다."

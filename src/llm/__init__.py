@@ -1,4 +1,4 @@
-# src/llm/__init__.py (올바른 최종 버전)
+# src/llm/__init__.py
 
 from loguru import logger
 from config.settings import config
@@ -24,8 +24,10 @@ routing_llm = _create_llm_client(
 )
 
 # 분석 LLM 클라이언트 생성
+# --- 이 부분이 수정되었습니다 (_create_lll_client -> _create_llm_client) ---
 analysis_llm = _create_llm_client(
     provider=config.analysis_llm_provider,
     model_name=config.routing_gemini_model if config.analysis_llm_provider == 'gemini' else config.analysis_local_model,
     client_role="분석"
 )
+# ---------------------------------------------------------------------

@@ -15,48 +15,53 @@ class LocalLlmClient(BaseLlmClient):
         self.model = model
         logger.info(f"✅ 로컬 LLM 클라이언트가 초기화되었습니다 (모델: {self.model})")
 
-    async def evaluate_links_batch(self, links: List[Dict[str, str]], target_goal: str) -> List[Dict[str, Any]]:
-        """여러 링크를 한 번에 평가하여 각 링크에 'score'를 추가한 리스트를 반환합니다."""
-        links_json_str = json.dumps(links, ensure_ascii=False, indent=2)
-
-        prompt = config.local_batch_link_eval_prompt.format(
+    async def evaluate_relevance_score(self, link_text: str, url: str, context: str, target_goal: str, strategic_notes: str) -> float:
+        prompt = config.local_link_eval_prompt.format(
             target_goal=target_goal,
-            links_json_str=links_json_str
+            strategic_notes=strategic_notes or "No specific strategies yet.",
+            link_text=link_text,
+            url=url,
+            context=context[:200]
         )
-
         try:
-            response = await self.client.generate(model=self.model, prompt=prompt, stream=False, format="json")
-            response_text = response['response'].strip()
-            scored_links = json.loads(response_text)
-
-            # Ollama가 가끔 score 필드를 누락하는 경우가 있어 안정성 확보
-            for i, link in enumerate(links):
-                if 'score' not in scored_links[i]:
-                    scored_links[i]['score'] = 0.0
-
-            return scored_links
+            response = await self.client.generate(model=self.model, prompt=prompt, stream=False)
+            score_text = response['response'].strip()
+            numbers = re.findall(r'\d+\.?\d*', score_text)
+            if numbers:
+                return max(0.0, min(1.0, float(numbers[0])))
+            logger.warning(f"로컬 LLM 링크 점수 파싱 실패: {score_text}")
+            return 0.0
         except Exception as e:
-            logger.error(f"로컬 LLM 링크 일괄 평가 실패: {e}")
-            return [dict(link, score=0.0) for link in links]
+            logger.error(f"로컬 LLM 링크 평가 실패: {url} | {e}")
+            return 0.0
 
     async def analyze_content(self, content: str, instruction_prompt: str) -> Dict[str, Any]:
-        """하나의 콘텐츠에서 요약, 키워드, 최종 점수를 한 번에 추출합니다."""
         prompt = config.local_combined_analysis_prompt.format(
             instruction_prompt=instruction_prompt,
             content=content[:4000]
         )
-
         try:
             response = await self.client.generate(model=self.model, prompt=prompt, stream=False, format="json")
             response_text = response['response'].strip()
             analysis_result = json.loads(response_text)
-
-            # Ollama가 가끔 특정 키를 누락하는 경우가 있어 안정성 확보
             if 'summary' not in analysis_result: analysis_result['summary'] = ""
             if 'keywords' not in analysis_result: analysis_result['keywords'] = []
             if 'relevance_score' not in analysis_result: analysis_result['relevance_score'] = 0.0
-
             return analysis_result
         except Exception as e:
             logger.error(f"로컬 LLM 콘텐츠 통합 분석 실패: {e}")
             return {"summary": "", "keywords": [], "relevance_score": 0.0}
+
+    async def update_critique(self, previous_critique: str, crawled_summaries: str, instruction_prompt: str, site_name: str) -> str:
+        prompt = config.local_critique_update_prompt.format(
+            site_name=site_name,
+            instruction_prompt=instruction_prompt,
+            previous_critique=previous_critique or "This is the first crawl for this site. No previous notes.",
+            crawled_summaries=crawled_summaries[:4000]
+        )
+        try:
+            response = await self.client.generate(model=self.model, prompt=prompt, stream=False)
+            return response['response'].strip()
+        except Exception as e:
+            logger.error(f"로컬 LLM 자기 교정 노트 생성 실패: {e}")
+            return "피드백 생성 중 오류가 발생했습니다."
