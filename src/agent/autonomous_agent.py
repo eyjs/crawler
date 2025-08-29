@@ -6,6 +6,7 @@ from collections import deque
 from urllib.parse import urlparse
 from loguru import logger
 from dataclasses import asdict
+import json
 
 from src.crawler.aio_extractor import AioExtractor
 from src.crawler.hybrid_extractor import AsyncStyleContentExtractor
@@ -28,7 +29,6 @@ class AutonomousAgent:
         )
         self.to_visit_queue = deque([start_url])
         self.visited_urls = set([start_url])
-        self.url_score_cache = {}
         self.crawled_data_packets = []
 
         logger.info(f"에이전트 초기화: {self.base_domain}")
@@ -80,13 +80,12 @@ class AutonomousAgent:
         await self._evaluate_and_enqueue_links(page_data.get('links', []))
 
     async def process_and_store_content(self, page_data: dict, current_url: str):
-        logger.info(f"  -> 유의미한 콘텐츠 발견. [분석 LLM]으로 후처리 시작...")
+        logger.info(f"  -> 유의미한 콘텐츠 발견. [분석 LLM]으로 통합 분석 시작...")
         content_text = page_data['content']
-        enrich_task = analysis_llm.enrich_content(content_text, self.instruction_prompt)
-        scoring_task = analysis_llm.score_content_relevance(content_text, self.instruction_prompt)
-        enriched_data, final_score = await asyncio.gather(enrich_task, scoring_task)
 
-        if not enriched_data or not enriched_data['summary']:
+        analysis_result = await analysis_llm.analyze_content(content_text, self.instruction_prompt)
+
+        if not analysis_result or not analysis_result.get('summary'):
             logger.warning("  -> 콘텐츠 강화 실패 (요약 내용 없음). 패킷을 생성하지 않습니다.")
             return
 
@@ -94,9 +93,9 @@ class AutonomousAgent:
             content_url=current_url,
             title=page_data.get('title', "N/A"),
             extracted_text=content_text,
-            summary=enriched_data['summary'],
-            keywords=enriched_data['keywords'],
-            relevance_score=final_score
+            summary=analysis_result.get('summary', ""),
+            keywords=analysis_result.get('keywords', []),
+            relevance_score=analysis_result.get('relevance_score', 0.0)
         )
         packet = DataPacket(
             source_info=self.source_info,
@@ -104,35 +103,35 @@ class AutonomousAgent:
             metadata=Metadata(source_page_url=current_url)
         )
         self.crawled_data_packets.append(packet)
-        logger.success(f"  -> ✅ 데이터 패킷 생성 성공 (Score: {final_score:.2f}): {packet.packet_id}")
+        logger.success(f"  -> ✅ 데이터 패킷 생성 성공 (Score: {crawled_content.relevance_score:.2f}): {packet.packet_id}")
 
     async def _evaluate_and_enqueue_links(self, links: list):
-        tasks = []
+        valid_links_to_eval = []
         for link in links:
-            if urlparse(link['url']).netloc != self.base_domain: continue
-            if link['url'] in self.visited_urls: continue
-            if not is_link_relevant_for_eval(link['text'], link['url']): continue
-            tasks.append(self.process_link(link))
-        await asyncio.gather(*tasks)
+            # url_score_cache에 없는 링크만 평가 대상으로 삼아 중복 평가 방지
+            if urlparse(link['url']).netloc == self.base_domain and \
+               link['url'] not in self.visited_urls and \
+               is_link_relevant_for_eval(link['text'], link['url']):
+                valid_links_to_eval.append(link)
 
-    async def process_link(self, link: dict):
-        url = link['url']
-        if url in self.visited_urls: return
+        if not valid_links_to_eval:
+            return
 
-        if url in self.url_score_cache:
-            score = self.url_score_cache[url]
-            logger.debug(f"  -> 캐시 점수: {score:.2f} | {link['text'][:30]}...")
-        else:
-            score = await routing_llm.evaluate_relevance_score(
-                link_text=link['text'],
-                url=url,
-                context=link['context'],
-                target_goal=self.instruction_prompt
-            )
+        logger.debug(f"  -> [라우팅 LLM] 링크 {len(valid_links_to_eval)}개 일괄 평가 시작...")
+        scored_links = await routing_llm.evaluate_links_batch(valid_links_to_eval, self.instruction_prompt)
+
+        for link in scored_links:
+            url = link.get('url')
+            score = link.get('score', 0.0)
+
+            if not url: continue
+
+            # 평가된 모든 링크의 점수를 캐시에 저장
             self.url_score_cache[url] = score
-            logger.debug(f"  -> [라우팅 LLM] 평가 점수: {score:.2f} | {link['text'][:30]}...")
+            logger.trace(f"  -> [라우팅 LLM] 평가 점수: {score:.2f} | {link.get('text', '')[:30]}...")
 
-        if score >= config.relevance_threshold:
-            self.visited_urls.add(url)
-            self.to_visit_queue.append(url)
-            logger.info(f"  -> ⭐ 큐 추가 ({score:.2f}): {url}")
+            if score >= config.relevance_threshold:
+                if url not in self.visited_urls:
+                    self.visited_urls.add(url)
+                    self.to_visit_queue.append(url)
+                    logger.info(f"  -> ⭐ 큐 추가 ({score:.2f}): {url}")
