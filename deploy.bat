@@ -1,5 +1,6 @@
 @echo off
 chcp 65001
+git config core.autocrlf true
 REM GitHub Pages 배포 스크립트 (Windows)
 REM master의 최신 내용으로 gh-pages를 완전히 덮어씌움
 
