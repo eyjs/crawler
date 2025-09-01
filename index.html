@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>자가 학습 크롤링 에이전트 | 최종 아키텍처 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        font-family: 'Noto Sans KR', sans-serif;
+      }
+      .mermaid {
+        margin-bottom: 2rem;
+        text-align: center;
+      }
+      .flow-step {
+        border-left: 3px solid;
+        padding-left: 1.5rem;
+        margin-left: 1.5rem;
+        position: relative;
+      }
+      .flow-step::before {
+        content: '';
+        position: absolute;
+        left: -0.75rem;
+        top: 0;
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 50%;
+        background-color: white;
+        border: 3px solid;
+      }
+      .step-1 {
+        border-color: #3b82f6;
+      }
+      .step-1::before {
+        border-color: #3b82f6;
+        background-color: #dbeafe;
+      }
+      .step-2 {
+        border-color: #16a34a;
+      }
+      .step-2::before {
+        border-color: #16a34a;
+        background-color: #dcfce7;
+      }
+      .step-3 {
+        border-color: #c026d3;
+      }
+      .step-3::before {
+        border-color: #c026d3;
+        background-color: #f5d0fe;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <div class="container mx-auto px-4 py-12 max-w-6xl">
+      <header class="text-center mb-16">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">자가 학습 크롤링 에이전트</h1>
+        <p class="text-xl text-gray-600">데이터 품질을 최우선으로 하는 지능형 정보 수집 시스템 아키텍처</p>
+      </header>
+
+      <!-- 핵심 철학 -->
+      <section class="mb-20">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900">핵심 철학: "정유 공장 모델"</h2>
+        <div class="grid md:grid-cols-2 gap-8 items-center">
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-2xl font-bold mb-3 text-blue-600">생산자 (Producers)</h3>
+            <p class="text-lg">"최대한 빠르고 넓게, 원유(Crude Data)를 시추하라."</p>
+            <p class="mt-4 text-gray-600">
+              데이터 수집에만 집중하는 초고속 크롤러입니다. 복잡한 분석이나 판단 없이, 웹사이트를 순회하며 가능한 모든
+              원시 데이터를 수집하여 저장소에 쌓아놓는 역할에만 집중합니다. 이들의 유일한 목표는 속도와 커버리지입니다.
+            </p>
+          </div>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-2xl font-bold mb-3 text-green-600">소비자 (Consumers)</h3>
+            <p class="text-lg">"수집된 원유를 정제하여, 고부가가치 제품(Valuable Packet)을 생산하라."</p>
+            <p class="mt-4 text-gray-600">
+              수집된 원시 데이터를 처리하는 지능형 워커입니다. 다단계 검증을 통해 노이즈를 걸러내고, LLM을 통해 데이터를
+              분석, 평가, 강화합니다. 또한 이 과정에서 얻은 지식을 '공유 두뇌'에 기록하여 시스템 전체를 학습시키는
+              역할을 합니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 전체 아키텍처 도식도 -->
+      <section class="mb-20">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900">전체 아키텍처 흐름도</h2>
+        <div class="bg-white p-8 rounded-lg shadow-lg">
+          <div class="mermaid">
+            graph LR subgraph Producer [🚀 생산자] direction TB A1[run_crawlers.py] --> A2(FastCrawlerAgent); A2 -->
+            A3{링크 탐색}; A3 --> A4[DataExtractor]; A4 --> A5((crawled_data)); end subgraph Consumer [🧠 소비자]
+            direction TB B1[run_workers.py] --> B2(LlmProcessingWorker); B2 --> B3{3단계 검증}; B3 --> B4[LlmClient]; B4
+            --> B5((output_packets)); end subgraph SharedBrain [🎓 공유 두뇌 및 기록부] direction RL KB[KnowledgeBase]
+            PL[ProcessedLedger] end A2 -- "경로/중복 문의" --> SharedBrain; B3 -- "학습 데이터 기록" --> SharedBrain; A5
+            -.-> B2 style Producer fill:#e0f2fe,stroke:#0284c7 style Consumer fill:#dcfce7,stroke:#16a34a style
+            SharedBrain fill:#fefce8,stroke:#eab308
+          </div>
+          <div class="mt-8 text-center text-gray-600">
+            <p>
+              <b>생산자 (크롤러)</b>는 '공유 두뇌'에 문의하여 효율적으로 데이터를 수집하고, <b>소비자 (워커)</b>는
+              수집된 데이터를 처리하며 '공유 두뇌'를 학습시킵니다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3단계 데이터 검증 파이프라인 -->
+      <section class="mb-20">
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900">데이터 품질을 위한 3단계 검증 파이프라인</h2>
+        <p class="text-center text-lg text-gray-600 mb-10">
+          `LlmProcessingWorker`는 저품질 데이터가 LLM으로 전달되는 것을 원천 차단하기 위해, 아래와 같은 다중 방어벽을
+          통과한 데이터만 처리합니다.
+        </p>
+        <div class="space-y-8">
+          <!-- Step 1 -->
+          <div class="flow-step step-1">
+            <h3 class="text-2xl font-bold text-blue-600">1단계: 프로그래밍 방식 품질 검사 (Quality Check)</h3>
+            <p class="mt-2 text-gray-700">
+              가장 빠르고 저렴한 첫 번째 방어선입니다. LLM을 호출하기 전에, 코드가 직접 텍스트의 구조를 분석하여 명백한
+              '목록' 페이지 데이터를 걸러냅니다.
+            </p>
+            <ul class="list-disc list-inside mt-3 space-y-1 text-gray-600">
+              <li><b>검사 항목:</b> 짧은 문장의 비율, 날짜/파일 확장자 패턴의 반복 빈도 등</li>
+              <li>
+                <b>역할:</b> LLM 호출 자체를 줄여 비용을 절감하고, `KnowledgeBase`가 저품질 데이터로 오염되는 것을
+                막습니다.
+              </li>
+              <li><b>처리 대상 예시:</b> 게시판 목록, 법령 목록 등</li>
+            </ul>
+          </div>
+          <!-- Step 2 -->
+          <div class="flow-step step-2">
+            <h3 class="text-2xl font-bold text-green-600">2단계: LLM 게이트키퍼 (Relevance Check)</h3>
+            <p class="mt-2 text-gray-700">
+              1차 검사를 통과한 데이터에 대해, 소량의 텍스트만 사용하여 LLM에게 "주제와 관련 있는가?"라는 간단한 질문을
+              던집니다.
+            </p>
+            <ul class="list-disc list-inside mt-3 space-y-1 text-gray-600">
+              <li><b>검사 항목:</b> 콘텐츠의 주제와 의미 (Semantic Relevance)</li>
+              <li>
+                <b>역할:</b> 구조적으로는 그럴듯하지만 주제가 완전히 다른(예: 회사 연혁, 채용 정보) 데이터를 걸러냅니다.
+              </li>
+              <li><b>처리 대상 예시:</b> 개발금융시대 연표, 조직도 등</li>
+            </ul>
+          </div>
+          <!-- Step 3 -->
+          <div class="flow-step step-3">
+            <h3 class="text-2xl font-bold text-purple-600">3단계: 심층 분석 및 강화 (Deep Analysis)</h3>
+            <p class="mt-2 text-gray-700">
+              두 개의 방어벽을 모두 통과한, '품질'과 '주제'가 모두 검증된 고품질 데이터에 대해서만 최종 분석을
+              수행합니다.
+            </p>
+            <ul class="list-disc list-inside mt-3 space-y-1 text-gray-600">
+              <li><b>수행 작업:</b> 상세 요약 생성, 핵심 키워드 추출, 최종 관련성 점수 부여</li>
+              <li>
+                <b>역할:</b> 가치 있는 정보만을 추출하여 최종 데이터 패킷을 생성하고, 그 결과를 `KnowledgeBase`에
+                기록하여 시스템을 학습시킵니다.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 데이터 변환 예시 -->
+      <section>
+        <h2 class="text-3xl font-bold text-center mb-8 text-gray-900">데이터 변환 예시: 노이즈에서 정보로</h2>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div class="bg-red-100 border-l-4 border-red-500 p-6 rounded-r-lg">
+            <h3 class="text-xl font-bold text-red-800 mb-3">BEFORE: 저품질 원시 데이터</h3>
+            <p class="text-red-700 mb-4">
+              `DataExtractor`의 지능형 필터링이 없었다면, '목록' 페이지의 모든 텍스트가 그대로 수집됩니다.
+            </p>
+            <div class="bg-white p-4 rounded text-sm text-gray-600 font-mono max-h-64 overflow-y-auto">
+              <pre><code>"홈으로
+정책마당
+법령정보
+...
+1342
+「금융위원회와 그 소속기관 직제 시행규칙」 일부개정령안 입법예고
+파일뷰어
+파일다운로드
+2025-08-11
+1341
+｢자본시장조사 업무규정 일부개정고시안｣ 규정변경예고
+..."</code></pre>
+            </div>
+          </div>
+          <div class="bg-green-100 border-l-4 border-green-500 p-6 rounded-r-lg">
+            <h3 class="text-xl font-bold text-green-800 mb-3">AFTER: 고품질 최종 데이터</h3>
+            <p class="text-green-700 mb-4">
+              최종 아키텍처를 거치면, 목록에서 발견된 특정 게시글의 '본문'과 '첨부파일 내용'만 정확히 추출됩니다.
+            </p>
+            <div class="bg-white p-4 rounded text-sm text-gray-600 font-mono max-h-64 overflow-y-auto">
+              <pre><code>"금융위원회는 「금융위원회와 그 소속기관 직제 시행규칙」의 일부 개정을 추진합니다.
+이번 개정안의 주요 내용은 디지털 금융 혁신 및 가상자산 시장의 건전한 발전을 지원하기 위해...
+(중략)
+
+--- [첨부 파일 시작: 입법예고.pdf] ---
+제1조(목적) 이 규칙은 금융위원회와 그 소속기관에 두는 보조기관...
+(중략)
+--- [첨부 파일 끝] ---"</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      mermaid.initialize({ startOnLoad: true });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+# === LLM & AI ===
+# Google Gemini API 클라이언트
+google-generativeai
+# Ollama 로컬 LLM 클라이언트
+ollama
+# LLM API 호출 시 재시도를 위한 유틸리티
+tenacity
+
+# === 웹 크롤링 & HTML 파싱 ===
+# 비동기 HTTP 클라이언트
+aiohttp
+# HTML/XML 파서
+beautifulsoup4
+# aiohttp 성능 향상을 위한 DNS 리졸버
+aiodns
+
+# === 첨부 파일(문서) 처리 ===
+# PDF 파일 텍스트 추출 (.pdf)
+pypdf
+# MS Word 파일 텍스트 추출 (.docx)
+python-docx
+# MS Excel 파일 처리 (.xlsx, .xls)
+openpyxl
+xlrd
+# MS PowerPoint 파일 텍스트 추출 (.pptx)
+python-pptx
+# 한글 파일 텍스트 추출 (.hwp)
+pyhwp
+# HWP 파일 처리를 위한 olefile 라이브러리
+olefile
+
+# === 데이터 처리 및 설정 ===
+# Excel 파일(prompt.xlsx)을 읽기 위한 데이터 분석 라이브러리
+pandas
+# .env 파일에서 환경 변수를 로드
+python-dotenv
+
+# === 비동기 파일 처리 ===
+aiofiles
