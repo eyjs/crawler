@@ -1,0 +1,53 @@
+# === LLM & AI ===
+# Google Gemini API 클라이언트
+google-generativeai
+# Ollama 로컬 LLM 클라이언트
+ollama
+# LLM API 호출 시 재시도를 위한 유틸리티
+tenacity
+
+# === 웹 크롤링 & HTML 파싱 ===
+# 비동기 HTTP 클라이언트
+aiohttp
+# HTML/XML 파서 (기존 호환성)
+beautifulsoup4
+# 고성능 XML/HTML 파서 (5-10배 빠름)
+lxml>=4.9.0
+# aiohttp 성능 향상을 위한 DNS 리졸버
+aiodns>=3.0.0
+
+# === 첨부 파일(문서) 처리 ===
+# PDF 파일 텍스트 추출 (.pdf)
+pypdf
+# MS Word 파일 텍스트 추출 (.docx)
+python-docx
+# MS Excel 파일 처리 (.xlsx, .xls)
+openpyxl
+xlrd
+# MS PowerPoint 파일 텍스트 추출 (.pptx)
+python-pptx
+# 한글 파일 텍스트 추출 (.hwp)
+pyhwp
+# HWP 파일 처리를 위한 olefile 라이브러리
+olefile
+
+# === 데이터 처리 및 설정 ===
+# Excel 파일(prompt.xlsx)을 읽기 위한 데이터 분석 라이브러리
+pandas
+# .env 파일에서 환경 변수를 로드
+python-dotenv
+
+# === 비동기 파일 처리 ===
+aiofiles
+
+# === 고성능 크롤링을 위한 추가 패키지 (문제없는 것들만) ===
+# 시스템 리소스 모니터링
+psutil>=5.9.0
+# 고성능 JSON 처리 (기본 json 모듈보다 2-3배 빠름)
+orjson>=3.8.0
+# 문자 인코딩 정규화 (cchardet 대신)
+charset-normalizer>=3.0.0
+# Linux에서 asyncio 성능 향상 (Windows에서는 자동 무시)
+uvloop>=0.17.0; sys_platform != "win32"
+# 빠른 HTTP 파싱
+httptools>=0.4.0
